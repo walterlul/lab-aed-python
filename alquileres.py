@@ -56,9 +56,50 @@ def iniciar_alquiler(alquileres, inventario, clientes, contador_id):
     print(f"  ✔ Alquiler #{id_alquiler} iniciado. Bicicleta {id_bici} marcada como ocupada.")
     return contador_id + 1
 
+def finalizar_alquiler(alquileres, inventario, clientes):
+    """Finaliza un alquiler en curso: calcula tiempo de uso e importe a cobrar."""
+    print("\n--- Finalizar alquiler ---")
 
+    alquileres_en_curso = [a for a in alquileres.values() if a["estado"] == "en curso"]
+    if not alquileres_en_curso:
+        print("  ℹ No hay alquileres en curso para finalizar.")
+        return
 
-  
+    print("Alquileres en curso:")
+    for a in alquileres_en_curso:
+        print(f"  #{a['id']} | Bicicleta {a['id_bici']} | Cliente DNI {a['dni_cliente']}")
+
+    id_alquiler = pedir_entero("Ingrese el número de alquiler a finalizar: ", minimo=1)
+
+    if id_alquiler not in alquileres or alquileres[id_alquiler]["estado"] != "en curso":
+        print("  ⚠ Error: ese número de alquiler no existe o ya fue finalizado.")
+        return
+
+    hora_fin = pedir_hora("Ingrese la hora de finalización (HH:MM): ")
+    alquiler = alquileres[id_alquiler]
+
+    minutos_uso = hora_fin - alquiler["hora_inicio"]
+    if minutos_uso < 0:
+        # Contempla el caso de que el alquiler cruce la medianoche
+        minutos_uso += 24 * 60
+
+    if minutos_uso == 0:
+        minutos_uso = 1  # se cobra un mínimo de 1 minuto para evitar importe $0
+
+    tarifa = obtener_tarifa(alquiler["tipo_bici"])
+    importe = minutos_uso * tarifa
+
+    alquiler["hora_fin"] = hora_fin
+    alquiler["minutos_uso"] = minutos_uso
+    alquiler["importe"] = importe
+    alquiler["estado"] = "finalizado"
+
+    marcar_disponible(inventario, alquiler["id_bici"])
+    incrementar_alquileres_cliente(clientes, alquiler["dni_cliente"])
+
+    print(f"  ✔ Alquiler #{id_alquiler} finalizado.")
+    print(f"    Tiempo de uso: {minutos_uso} minutos")
+    print(f"    Importe a cobrar: ${importe}")
 
 
 def listar_alquileres(alquileres):
